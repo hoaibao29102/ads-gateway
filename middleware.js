@@ -1,7 +1,7 @@
 // middleware.js — redirect thông minh giữa 2 store Shopify
 
-const PRIMARY = "https://yanthypa.com/mens-summer-outfit";   // Shopify chính
-const FALLBACK = "https://buthihan.com/ergonomic-seat-cushion";  // Shopify dự phòng
+const PRIMARY = "https://yanthypa.com/";   // Shopify chính
+const FALLBACK = "https://buthihan.com/";  // Shopify dự phòng
 const OK = new Set([200, 301, 302, 307, 308]);
 
 export const config = { matcher: "/:path*" };
