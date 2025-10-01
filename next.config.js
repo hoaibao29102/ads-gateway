@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone"
+  // Không cần app router; chỉ dùng pages router.
+  // Không đặt experimental.appDir = true
 };
 module.exports = nextConfig;
