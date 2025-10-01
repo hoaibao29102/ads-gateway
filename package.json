@@ -1,0 +1,11 @@
+{
+  "name": "ads-gateway",
+  "private": true,
+  "scripts": { "build": "next build", "start": "next start", "dev": "next dev" },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@vercel/edge-config": "^1.1.0"
+  }
+}
