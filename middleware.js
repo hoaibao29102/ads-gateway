@@ -1,18 +1,23 @@
 import { get } from "@vercel/edge-config";
+import { NextResponse } from "next/server";
 
 export const config = { matcher: "/:path*" };
 
-export default async function middleware() {
-  // Đọc cấu hình từ Edge Config
-  const active = (await get("ACTIVE")) || "A";
-  const links = (await get("LINKS")) || {};
+export default async function middleware(req) {
+  const host = req.headers.get("host");          // ví dụ "ad1.com"
+  const all = (await get()) || {};               // lấy toàn bộ JSON
+  const info = all.hosts?.[host];                // đọc trong hosts
 
-  // Lấy URL theo key ACTIVE; nếu thiếu thì lấy phần tử đầu tiên trong LINKS
-  let url = links[active];
-  if (!url) {
-    const first = Object.values(links)[0];
-    url = first || "https://example.com"; // fallback cuối cùng nếu LINKS rỗng
+  if (!info) {
+    return new NextResponse("Host config not found", { status: 404 });
   }
 
-  return Response.redirect(url, 302);
+  const activeKey = info.active || "A";
+  const dest = info.links?.[activeKey];
+
+  if (!dest) {
+    return new NextResponse("Active link missing", { status: 500 });
+  }
+
+  return NextResponse.redirect(dest, 302);
 }
