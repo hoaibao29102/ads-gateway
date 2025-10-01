@@ -1,54 +1,90 @@
 import { useEffect, useState, Fragment } from "react";
 
+// clone an toàn, không phụ thuộc structuredClone
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj ?? {}));
+}
+
 export default function Admin() {
   const [pass, setPass] = useState("");
   const [data, setData] = useState({ hosts: {} });
   const [newHost, setNewHost] = useState("");
 
   async function load() {
-    const r = await fetch("/api/list");
-    const j = await r.json();
-    setData(j || { hosts: {} });
+    try {
+      const r = await fetch("/api/list");
+      const j = await r.json();
+      // đảm bảo luôn có shape { hosts: {} }
+      setData({ hosts: j?.hosts ?? {} });
+    } catch (e) {
+      console.error("load failed", e);
+      setData({ hosts: {} });
+    }
   }
   useEffect(() => { load(); }, []);
 
   const hosts = Object.keys(data.hosts || {}).sort();
 
+  function normalizeHost(h) {
+    return (h || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, ""); // bỏ path sau domain
+  }
+
   function setActive(h, val) {
-    const copy = structuredClone(data);
+    const copy = deepClone(data);
+    if (!copy.hosts[h]) copy.hosts[h] = { active: "A", links: {} };
     copy.hosts[h].active = val;
     setData(copy);
   }
 
   function setLink(h, key, url) {
-    const copy = structuredClone(data);
+    const copy = deepClone(data);
+    if (!copy.hosts[h]) copy.hosts[h] = { active: "A", links: {} };
     copy.hosts[h].links[key] = url;
     setData(copy);
   }
 
   function addHost() {
-    const h = newHost.trim();
-    if (!h) return;
-    const copy = structuredClone(data);
-    copy.hosts[h] = { active: "A", links: {} };
-    setData(copy);
+    const h = normalizeHost(newHost);
+    if (!h) return alert("Nhập domain trước (vd: ad1.com)");
+    const copy = deepClone(data);
+    if (copy.hosts[h]) {
+      alert("Domain đã tồn tại trong danh sách");
+    } else {
+      copy.hosts[h] = { active: "A", links: {} };
+      setData(copy);
+    }
     setNewHost("");
   }
 
   function removeHost(h) {
-    const copy = structuredClone(data);
+    const copy = deepClone(data);
     delete copy.hosts[h];
     setData(copy);
   }
 
   async function save() {
-    const r = await fetch("/api/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-pass": pass },
-      body: JSON.stringify(data)
-    });
-    alert(r.ok ? "Saved!" : "Save failed");
-    if (r.ok) load();
+    try {
+      const r = await fetch("/api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-pass": pass },
+        body: JSON.stringify({ hosts: data.hosts })
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        alert("Save failed: " + t);
+      } else {
+        alert("Saved!");
+        load(); // reload lại từ Edge Config
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Save failed (network error)");
+    }
   }
 
   return (
@@ -56,15 +92,23 @@ export default function Admin() {
       <h2>Ads Gateway Admin</h2>
 
       <div style={{display:"flex", gap:12, margin:"12px 0"}}>
-        <input type="password" placeholder="Admin password"
-               value={pass} onChange={e=>setPass(e.target.value)}
-               style={{flex:1, padding:8}}/>
+        <input
+          type="password"
+          placeholder="Admin password"
+          value={pass}
+          onChange={e=>setPass(e.target.value)}
+          style={{flex:1, padding:8}}
+        />
         <button onClick={save} style={{padding:"8px 14px"}}>Save</button>
       </div>
 
       <div style={{display:"flex", gap:8, margin:"16px 0"}}>
-        <input placeholder="Thêm domain (vd: ad3.com)" value={newHost}
-               onChange={e=>setNewHost(e.target.value)} style={{flex:1, padding:8}}/>
+        <input
+          placeholder="Thêm domain (vd: ad3.com)"
+          value={newHost}
+          onChange={e=>setNewHost(e.target.value)}
+          style={{flex:1, padding:8}}
+        />
         <button onClick={addHost}>Add domain</button>
       </div>
 
@@ -85,10 +129,12 @@ export default function Admin() {
             {["A","B","C","D"].map(k => (
               <Fragment key={k}>
                 <div style={{textAlign:"right", paddingTop:6}}>{k}:</div>
-                <input placeholder={`https://... (${k})`}
-                       value={(data.hosts[h].links && data.hosts[h].links[k]) || ""}
-                       onChange={e=>setLink(h, k, e.target.value)}
-                       style={{padding:8}}/>
+                <input
+                  placeholder={`https://... (${k})`}
+                  value={(data.hosts[h].links && data.hosts[h].links[k]) || ""}
+                  onChange={e=>setLink(h, k, e.target.value)}
+                  style={{padding:8}}
+                />
               </Fragment>
             ))}
           </div>
