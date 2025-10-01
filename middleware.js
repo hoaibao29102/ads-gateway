@@ -1,33 +1,18 @@
-// middleware.js — redirect thông minh giữa 2 store Shopify
-
-const PRIMARY = "https://yanthypa.com/";   // Shopify chính
-const FALLBACK = "https://buthihan.com/";  // Shopify dự phòng
-const OK = new Set([200, 301, 302, 307, 308]);
+import { get } from "@vercel/edge-config";
 
 export const config = { matcher: "/:path*" };
 
-async function healthy(url) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 1200); // timeout 1.2s
-  try {
-    const res = await fetch(url, { method: "HEAD", redirect: "manual", signal: controller.signal });
-    return OK.has(res.status);
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(t);
-  }
-}
+export default async function middleware() {
+  // Đọc cấu hình từ Edge Config
+  const active = (await get("ACTIVE")) || "A";
+  const links = (await get("LINKS")) || {};
 
-export default async function middleware(req) {
-  const { pathname, search } = new URL(req.url);
-  const buildUrl = (base) =>
-    search ? `${base}${pathname}${base.includes("?") ? "&" : "?"}${search.slice(1)}` : `${base}${pathname}`;
-
-  const urlA = buildUrl(PRIMARY);
-  if (await healthy(urlA)) {
-    return Response.redirect(urlA, 302);
+  // Lấy URL theo key ACTIVE; nếu thiếu thì lấy phần tử đầu tiên trong LINKS
+  let url = links[active];
+  if (!url) {
+    const first = Object.values(links)[0];
+    url = first || "https://example.com"; // fallback cuối cùng nếu LINKS rỗng
   }
-  const urlB = buildUrl(FALLBACK);
-  return Response.redirect(urlB, 302);
+
+  return Response.redirect(url, 302);
 }
