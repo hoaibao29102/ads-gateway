@@ -4,17 +4,17 @@ import { NextResponse } from "next/server";
 export const config = { matcher: "/:path*" };
 
 export default async function middleware(req) {
-  const host = req.headers.get("host");       // ví dụ: ad1.com
-  if (!host) return new NextResponse("Missing Host", { status: 400 });
+  const rawHost = req.headers.get("host") || "";
+  const host = rawHost.replace(/^www\./i, ""); // bỏ www. nếu có
 
-  // Lấy đúng key "hosts" trong Edge Config (KHÔNG dùng get() trống)
   const hosts = (await get("hosts")) || {};
-  const info = hosts[host];
+  // Ưu tiên đúng host, nếu không có thì dùng __default
+  const info = hosts[host] || hosts["__default"];
 
   if (!info) return new NextResponse("Host config not found", { status: 404 });
 
-  const activeKey = info.active || "A";
-  const dest = info.links?.[activeKey];
+  const active = info.active || "A";
+  const dest = info.links?.[active];
   if (!dest) return new NextResponse("Active link missing", { status: 500 });
 
   return NextResponse.redirect(dest, 302);
