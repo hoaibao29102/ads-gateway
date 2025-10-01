@@ -23,3 +23,4 @@ export default async function middleware(req) {
 
   return NextResponse.redirect(dest, 302);
 }
+export const config = { matcher: ["/((?!api|API|admin|Admin|ADMIN).*)"] };
