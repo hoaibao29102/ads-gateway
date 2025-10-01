@@ -1,15 +1,19 @@
 import { get } from "@vercel/edge-config";
 import { NextResponse } from "next/server";
 
-export const config = { matcher: "/:path*" };
+// Chỉ áp dụng middleware cho mọi route TRỪ /api/* và /admin
+export const config = {
+  matcher: [
+    "/((?!api|admin).*)"
+  ]
+};
 
 export default async function middleware(req) {
   const rawHost = req.headers.get("host") || "";
-  const host = rawHost.replace(/^www\./i, ""); // bỏ www. nếu có
+  const host = rawHost.toLowerCase().replace(/^www\./, "");
 
-  const hosts = (await get("hosts")) || {};
-  // Ưu tiên đúng host, nếu không có thì dùng __default
-  const info = hosts[host] || hosts["__default"];
+  const all = (await get("hosts")) || {};
+  const info = all[host] || all["__default"];
 
   if (!info) return new NextResponse("Host config not found", { status: 404 });
 
