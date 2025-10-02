@@ -3,7 +3,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   if (!body.hosts || typeof body.hosts !== "object") {
-    return res.status(400).json({ ok:false, msg:"invalid payload: missing hosts" });
+    return res.status(400).json({ ok:false, msg:"invalid payload" });
   }
 
   const base = `https://api.vercel.com/v1/edge-config/${process.env.EDGE_CONFIG_ID}/items`;
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const r = await fetch(url, {
     method: "PATCH",
     headers: {
-      "Authorization": `Bearer ${process.env.VERCEL_API_TOKEN}`, // REST API token
+      "Authorization": `Bearer ${process.env.VERCEL_API_TOKEN}`, // <-- phải là Vercel API Token
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
