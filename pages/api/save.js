@@ -1,11 +1,6 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  // Nếu muốn bỏ mật khẩu, xóa block dưới đi
-  if (req.headers["x-admin-pass"] !== process.env.ADMIN_PASS) {
-    return res.status(401).json({ ok:false, msg:"unauthorized: wrong ADMIN_PASS" });
-  }
-
   const body = req.body || {};
   if (!body.hosts || typeof body.hosts !== "object") {
     return res.status(400).json({ ok:false, msg:"invalid payload: missing hosts" });
@@ -17,7 +12,7 @@ export default async function handler(req, res) {
   const r = await fetch(url, {
     method: "PATCH",
     headers: {
-      "Authorization": `Bearer ${process.env.VERCEL_API_TOKEN}`,
+      "Authorization": `Bearer ${process.env.VERCEL_API_TOKEN}`, // REST API token
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
